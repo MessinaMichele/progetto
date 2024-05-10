@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tetris</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="tetrisCanvas" width="300" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('tetrisCanvas');
+    const ctx = canvas.getContext('2d');
+    const blockSize = 30;
+    const boardWidth = 10;
+    const boardHeight = 20;
+    const board = [];
+    let currentPiece = null;
+
+    function init() {
+      for (let y = 0; y < boardHeight; y++) {
+        board[y] = [];
+        for (let x = 0; x < boardWidth; x++) {
+          board[y][x] = 0;
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBoard();
+      drawPiece();
+    }
+
+    function drawBoard() {
+      for (let y = 0; y < boardHeight; y++) {
+        for (let x = 0; x < boardWidth; x++) {
+          if (board[y][x]) {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(x * blockSize, y * blockSize, blockSize, blockSize);
+          }
+        }
+      }
+    }
+
+    function drawPiece() {
+      if (currentPiece) {
+        const { shape, x, y } = currentPiece;
+        ctx.fillStyle = 'red';
+        shape.forEach((row, rowIndex) => {
+          row.forEach((cell, colIndex) => {
+            if (cell) {
+              ctx.fillRect((x + colIndex) * blockSize, (y + rowIndex) * blockSize, blockSize, blockSize);
+            }
+          });
+        });
+      }
+    }
+
+    function spawnPiece() {
+      const pieces = [
+        [[1, 1, 1], [0, 1, 0]],
+        [[1, 1], [1, 1]],
+        [[1, 1, 0], [0, 1, 1]],
+        [[0, 1, 1], [1, 1, 0]],
+        [[1, 1, 1, 1]],
+      ];
+      const randomPiece = pieces[Math.floor(Math.random() * pieces.length)];
+      currentPiece = {
+        shape: randomPiece,
+        x: Math.floor(boardWidth / 2) - Math.floor(randomPiece[0].length / 2),
+        y: 0,
+      };
+    }
+
+    function moveDown() {
+      if (currentPiece) {
+        const { shape, x, y } = currentPiece;
+        if (canMove(shape, x, y + 1)) {
+          currentPiece.y++;
+        } else {
+          mergePiece();
+          clearLines();
+          spawnPiece();
+        }
+      }
+    }
+
+    function canMove(piece, x, y) {
+      for (let row = 0; row < piece.length; row++) {
+        for (let col = 0; col < piece[row].length; col++) {
+          if (piece[row][col]) {
+            const nextX = x + col;
+            const nextY = y + row;
+            if (nextY >= boardHeight || board[nextY][nextX]) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    function mergePiece() {
+      const { shape, x, y } = currentPiece;
+      shape.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+          if (cell) {
+            const boardX = x + colIndex;
+            const boardY = y + rowIndex;
+            board[boardY][boardX] = 1;
+          }
+        });
+      });
+    }
+
+    function clearLines() {
+      for (let y = boardHeight - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell)) {
+          board.splice(y, 1);
+          board.unshift(new Array(boardWidth).fill(0));
+          y++;
+        }
+      }
+    }
+
+    document.addEventListener('keydown', function(event) {
+      switch (event.keyCode) {
+        case 37: // left arrow
+          if (currentPiece && canMove(currentPiece.shape, currentPiece.x - 1, currentPiece.y)) {
+            currentPiece.x--;
+          }
+          break;
+        case 39: // right arrow
+          if (currentPiece && canMove(currentPiece.shape, currentPiece.x + 1, currentPiece.y)) {
+            currentPiece.x++;
+          }
+          break;
+        case 40: // down arrow
+          moveDown();
+          break;
+      }
+    });
+
+    init();
+    spawnPiece();
+    setInterval(() => {
+      moveDown();
+      draw();
+    }, 1000);
+  </script>
+</body>
+</html>
